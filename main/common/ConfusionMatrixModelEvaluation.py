@@ -48,6 +48,18 @@ class ConfusionMatrixModelEvaluation:
     __errorRate = 0.00
     # F-measure = 2/(1/Precision + 1/recall)，
     __f1 = 0.00
+    # 评价图X横坐标，固定的101个百分点位
+    __axis_x = numpy.arange(0, 1.01, 0.01, dtype="float")
+    # 评价图Y纵坐标：lift值
+    __axis_lift = numpy.arange(0, 1.01, 0.01, dtype="float")
+    # 评价图Y纵坐标：recall值
+    __axis_recall = numpy.arange(0, 1.01, 0.01, dtype="float")
+    # 评价图Y纵坐标：precision值
+    __axis_precision = numpy.zeros(101, dtype="float")
+    # 评价图Y纵坐标：fpr值
+    __axis_fpr = numpy.zeros(101, dtype="float")
+    # 评价图Y纵坐标：ks值
+    __axis_ks = numpy.zeros(101, dtype="float")
 
     """    构造函数，初始化传入待评估数据，对概率列排序，计算__P和__N
            参数data：必须是n*2的numpy array，第一列预测概率y_score，第二列实际分类值y_true    """
@@ -173,7 +185,7 @@ class ConfusionMatrixModelEvaluation:
         else:
             self.__f1 = 2/(1/self.__precision + 1/self.__recall)
 
-    """    按100份计算各分位点的指标，画出Lift图
+    """    按100份计算各分位点的Lift指标
            参数:
                divisiontype：划分类型，允许两种：percentage按数量等份100份，probability按概率等分100份
            返回：
@@ -181,37 +193,28 @@ class ConfusionMatrixModelEvaluation:
                axis_y：图形纵坐标值，即各分位点的Lift值
                max(axis_y)：最大Lift值 
     """
-    def liftgraph(self, divisiontype='percentage'):
+    def calclift(self, divisiontype='percentage'):
         i = 0
-        axis_x = numpy.arange(0, 1.01, 0.01, dtype="float")
-        axis_y = numpy.arange(0, 1.01, 0.01, dtype="float")
         if divisiontype == 'probability':
             while i < 100:
-                self.calculateindicatorsbyprobability(1-axis_x[i])
+                self.calculateindicatorsbyprobability(1-self.__axis_x[i])
                 if (self.__TP + self.__FP) == 0:
-                    axis_y[i] = (self.__TP) / (self.__P / (self.__P + self.__N))
+                    self.__axis_lift[i] = (self.__TP) / (self.__P / (self.__P + self.__N))
                 else:
-                    axis_y[i] = (self.__TP/(self.__TP + self.__FP))/(self.__P/(self.__P + self.__N))
+                    self.__axis_lift[i] = (self.__TP/(self.__TP + self.__FP))/(self.__P/(self.__P + self.__N))
                 i += 1
         elif divisiontype == 'percentage':
             while i < 100:
-                self.calculateindicatorsbypercentage(axis_x[i])
+                self.calculateindicatorsbypercentage(self.__axis_x[i])
                 if (self.__TP + self.__FP) == 0:
-                    axis_y[i] = (self.__TP) / (self.__P / (self.__P + self.__N))
+                    self.__axis_lift[i] = (self.__TP) / (self.__P / (self.__P + self.__N))
                 else:
-                    axis_y[i] = (self.__TP/(self.__TP + self.__FP))/(self.__P/(self.__P + self.__N))
+                    self.__axis_lift[i] = (self.__TP/(self.__TP + self.__FP))/(self.__P/(self.__P + self.__N))
                 i += 1
 
-        plt.plot(axis_x, axis_y, 'b', label='Max Lift: %0.2f' % max(axis_y))
-        plt.legend(loc='lower right')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, axis_y.max()])
-        plt.ylabel('lift')
-        plt.xlabel(divisiontype)
-        plt.show()
-        return axis_x, axis_y, max(axis_y)
+        return self.__axis_x, self.__axis_lift, max(self.__axis_lift)
 
-    """    按100份计算各切分的指标，画出ROC图和洛伦兹曲线图
+    """    按100份计算各切分的recall/precision指标
            参数：
                divisiontype：划分类型，允许两种：percentage按数量等份100份，probability按概率等分100份
            返回：
@@ -220,84 +223,111 @@ class ConfusionMatrixModelEvaluation:
                axis_y_precision：图形纵坐标值，即各分位点的查准率
                auc：ROC曲线下面积
     """
-    def roclorenzgraph(self, divisiontype='percentage'):
+    def calcroc(self, divisiontype='percentage'):
         i = 0
-        axis_x = numpy.arange(0, 1.01, 0.01, dtype="float")
-        axis_y_recall = numpy.arange(0, 1.01, 0.01, dtype="float")
-        #axis_y_precision = numpy.arange(0, 1.01, 0.01, dtype="float")
-        axis_y_precision = numpy.zeros(101, dtype="float")
         if divisiontype == 'probability':
             while i < 100:
-                self.calculateindicatorsbyprobability(1-axis_x[i])
-                axis_y_recall[i] = self.__recall
-                axis_y_precision[i] = self.__precision
+                self.calculateindicatorsbyprobability(1-self.__axis_x[i])
+                self.__axis_recall[i] = self.__recall
+                self.__axis_precision[i] = self.__precision
                 i += 1
         elif divisiontype == 'percentage':
             while i < 100:
-                self.calculateindicatorsbypercentage(axis_x[i])
-                axis_y_recall[i] = self.__recall
-                axis_y_precision[i] = self.__precision
+                self.calculateindicatorsbypercentage(self.__axis_x[i])
+                self.__axis_recall[i] = self.__recall
+                self.__axis_precision[i] = self.__precision
                 i += 1
+        self.__axis_precision[100] =  self.__axis_precision[99]
+        self.__axis_precision[0] = self.__axis_precision[1]
+        auc = numpy.trapz(self.__axis_recall, self.__axis_x)
+        return self.__axis_x, self.__axis_recall, self.__axis_precision, auc
 
-        auc = numpy.trapz(axis_y_recall, axis_x)
-        plt.plot(axis_x, axis_y_recall, 'b', label='AUC: %0.2f' % auc)
-        plt.plot(axis_x, axis_y_precision, 'g', label='Max precision: %0.2f' % max(axis_y_precision))
-        plt.legend(loc='lower right')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.0])
-        plt.plot([0, 1], [0, 1], 'r--')
-        plt.xlabel(divisiontype)
-        plt.show()
-        return axis_x, axis_y_recall, axis_y_precision, auc
-
-    """    按100份计算各切分的指标，画出KS图
+    """    按100份计算各切分的recall/ftp/ks指标
            参数：
                divisiontype：划分类型，允许两种：percentage按数量等份100份，probability按概率等分100份
            返回：
                axis_x：图形横坐标值，即各分位点
                axis_y_recall：图形纵坐标值，即各分位点的召回率
                axis_y_precision：图形纵坐标值，即各分位点的查准率
-               auc：ROC曲线下面积
                max(axis_y_ks)：最大KS值
     """
-    def ksgraph(self,divisiontype='percentage'):
+    def calcks(self, divisiontype='percentage'):
         i = 0
-        axis_x = numpy.arange(0, 1.01, 0.01, dtype="float")
-        axis_y_recall = numpy.arange(0, 1.01, 0.01, dtype="float")
-        axis_y_fpr = numpy.arange(0, 1.01, 0.01, dtype="float")
-        # axis_y_ks = numpy.arange(0, 1.01, 0.01, dtype="float")
-        axis_y_ks = numpy.zeros(101, dtype="float")
         if divisiontype == 'probability':
             while i < 100:
-                self.calculateindicatorsbyprobability(1-axis_x[i])
-                axis_y_recall[i] = self.__recall
-                axis_y_fpr[i] = self.__fpr
-                axis_y_ks[i] = axis_y_recall[i] - axis_y_fpr[i]
+                self.calculateindicatorsbyprobability(1-self.__axis_x[i])
+                self.__axis_recall[i] = self.__recall
+                self.__axis_fpr[i] = self.__fpr
+                self.__axis_ks[i] = self.__axis_recall[i] - self.__axis_fpr[i]
                 i += 1
         elif divisiontype == 'percentage':
             while i < 100:
-                self.calculateindicatorsbypercentage(axis_x[i])
-                axis_y_recall[i] = self.__recall
-                axis_y_fpr[i] = self.__fpr
-                axis_y_ks[i] = axis_y_recall[i] - axis_y_fpr[i]
+                self.calculateindicatorsbypercentage(self.__axis_x[i])
+                self.__axis_recall[i] = self.__recall
+                self.__axis_fpr[i] = self.__fpr
+                self.__axis_ks[i] = self.__axis_recall[i] - self.__axis_fpr[i]
                 i += 1
-
-        auc = numpy.trapz(axis_y_recall, axis_x)
-        plt.plot(axis_x, axis_y_recall, 'r', label='AUC: %0.2f' % auc)
-        plt.plot(axis_x, axis_y_fpr, 'g', )
-        plt.plot(axis_x, axis_y_ks, 'b', label='Max KS: %0.2f' % max(axis_y_ks))
-        plt.legend(loc='lower right')
-        plt.xlim([0.0, 1.0])
-        plt.ylim([0.0, 1.0])
-        plt.xlabel(divisiontype)
-        plt.show()
-        return axis_x, axis_y_recall, axis_y_ks, auc, max(axis_y_ks)
+        self.__axis_fpr[100] = 1
+        return self.__axis_x, self.__axis_recall, self.__axis_ks, max(self.__axis_ks)
 
     """
         在同一个板上画所有的图
     """
-    def allgraph(self, divisiontype='percentage'):
-        print()
+    def allgraph(self, filepath=''):
+        # 计算各项指标
+        self.calclift()
+        self.calcroc()
+        self.calcks()
+        # 分三块画布
+        figure, axes = plt.subplots(nrows=1, ncols=3,  figsize=(20, 4))
+        # 第一块画lift曲线
+        axes[0].plot(self.__axis_x, self.__axis_lift, 'r', label='Max Lift: %0.2f' % max(
+            self.__axis_lift))
+        axes[0].plot([numpy.argmax(self.__axis_lift)/100, numpy.argmax(self.__axis_lift)/100],
+                     [0, max(self.__axis_lift)],
+                     '0.8', label='Percent: %0.2f' % (numpy.argmax(self.__axis_lift)/100))
+        axes[0].legend(loc='lower right')
+        axes[0].set_xlim([0.0, 1.0])
+        axes[0].set_ylim([0.0, self.__axis_lift.max()+0.5])
+        axes[0].set_ylabel('lift')
+        axes[0].set_xlabel('percentage')
+        # 第二块画ROC和Lorenz曲线
+        auc = numpy.trapz(self.__axis_recall, self.__axis_x)
+        axes[1].plot(self.__axis_x, self.__axis_recall, 'b', label='AUC: %0.2f' % auc)
+        axes[1].plot(self.__axis_x, self.__axis_precision, 'g', label='Max precision: %0.2f' % max(self.__axis_precision))
+        y_prec = self.__axis_precision;
+        y_prec[0] = max(self.__axis_precision)
+        x1 = [numpy.argmin(numpy.abs(y_prec - self.__axis_recall))/100, numpy.argmin(
+            numpy.abs(y_prec-self.__axis_recall))/100]
+        y1 = [0, self.__axis_recall[numpy.argmin(numpy.abs(y_prec-self.__axis_recall))]]
+        axes[1].plot(x1, y1, '0.8', label='best point: %0.2f, %0.2f' % (numpy.argmin(numpy.abs(
+            y_prec - self.__axis_recall))/100, self.__axis_recall[numpy.argmin(numpy.abs(y_prec-self.__axis_recall))]))
+        axes[1].legend(loc='lower right')
+        axes[1].set_xlim([0.0, 1.0])
+        axes[1].set_ylim([0.0, 1.0])
+        axes[1].plot([0, 1], [0, 1], 'y-.')
+        axes[1].set_xlabel('percentage')
+        # 第三块画KS图
+        axes[2].plot(self.__axis_x, self.__axis_recall, 'b')
+        axes[2].plot(self.__axis_x, self.__axis_fpr, 'g', )
+        axes[2].plot(self.__axis_x, self.__axis_ks, '0.8', label='Max KS: %0.2f' % max(
+            self.__axis_ks))
+        x2 = [numpy.argmax(self.__axis_ks) / 100, numpy.argmax(self.__axis_ks) / 100]
+        y2 = [0, max(self.__axis_ks)]
+        axes[2].plot(x2, y2, '0.8', label='best point: %0.2f' % (numpy.argmax(self.__axis_ks) /
+                                                                 100))
+
+        axes[2].legend(loc='lower right')
+        axes[2].set_xlim([0.0, 1.0])
+        axes[2].set_ylim([0.0, 1.0])
+        axes[2].set_xlabel('percentage')
+
+        # 保存图片
+        if filepath != '':
+            plt.savefig(filepath)
+
+        # 显示图片
+        plt.show()
 
     """
         按100份计算各切分的指标，输出100份的各项指标
