@@ -1,7 +1,7 @@
 """
     0.前言：
     本程序详细演示逻辑回归在信用评分卡中的建模过程和关键技术点，以及模型评估。
-    这是一个典型的二元分类回归问题。
+    这是一个典型的二分类回归问题。
     数据挖掘项目最繁琐且最不可自动化的环节在前期数据清洗和验证，所以本程序不做演示和赘述，验证细节请移步DataValidation.py。
     已经有一份处理好且自变量均有效的宽表数据dd_df.xlsx：
     loan_id为流水号，y是因变量（其中y=1为正例，表示坏客户），其余均为自变量换算成的woe值。
@@ -55,21 +55,15 @@ print('intercept:', lr.intercept_)
 """
     3.根据结果画LIFT曲线、ROC曲线、KS曲线、计算AUC值
       sklearn.metrics.roc_curve、auc函数能够自动根据实际值和预测概率计算结果，
-      但本程序未使用，自行封装了ConfusionMatrixModelEvaluation类直接调用
+      但本程序未使用，自行撰写封装了ConfusionMatrixModelEvaluation类直接调用
 """
-# 画LIFT图
 result = numpy.dstack((y_predict[:, 1], y_test))[0]
 cmme = ConfusionMatrixModelEvaluation(result)
-print(cmme)
-cmme.liftgraph(divisiontype="percentage")
+cmme.allgraph()
 
-# 画ROC曲线和洛伦兹曲线
-cmme.roclorenzgraph(divisiontype="percentage")
-
-# 画KS曲线
-cmme.ksgraph(divisiontype="percentage")
-
-# 获取结果指标明细并导出为excel
+"""
+    4.获取结果指标明细并导出为excel
+"""
 indicators = cmme.getindicators(divisiontype="percentage")
 df_indicators = pandas.DataFrame(indicators)
 df_indicators.columns = ['分位点', '召回率', '查准率', '特指度', '准确性', 'F-measure']
