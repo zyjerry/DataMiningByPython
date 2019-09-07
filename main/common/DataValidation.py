@@ -7,10 +7,8 @@
 import numpy
 import pandas
 import math
-import sklearn.linear_model
-from sklearn.model_selection import KFold
 import scipy.stats
-import sklearn.feature_selection
+
 
 class DataValidation:
     """    私有属性声明    """
@@ -41,12 +39,13 @@ class DataValidation:
             y：数据的目标变量，除了id和y之外，其他变量默认全部是待分析的自变量
     """
     def __init__(self, filetype='xlsx', filename='', sheetname='Sheet1', id='id', y='y'):
-        self.__dataframe = pandas.read_excel(filename, sheet_name=sheetname)
-        self.__id = id
-        self.__y = y
-        self.__x = pandas.Series(self.__dataframe.columns)
-        self.__x = self.__x[self.__x != self.__id]
-        self.__x = self.__x[self.__x != self.__y]
+        if filetype == 'xlsx':
+            self.__dataframe = pandas.read_excel(filename, sheet_name=sheetname)
+            self.__id = id
+            self.__y = y
+            self.__x = pandas.Series(self.__dataframe.columns)
+            self.__x = self.__x[self.__x != self.__id]
+            self.__x = self.__x[self.__x != self.__y]
 
     """    
         当print该类对象时返回的内容    
@@ -56,6 +55,7 @@ class DataValidation:
         printstr += str(self.__dataframe.shape[0]) + "行，"
         printstr += str(self.__dataframe.shape[1]) + "列\n"
         printstr += "列名：\n" + str(pandas.Series(self.__dataframe.columns))
+        printstr += "\ny变量值分布情况：" + str(self.__dataframe.groupby(self.__y)[self.__y].count())
         return printstr
 
     """
@@ -269,7 +269,10 @@ class DataValidation:
         self.__dataframe_woe = self.__dataframe_woe.dropna(axis=1)
         return self.__dataframe_woe
 
-"""    当直接运行本类时，打印默认初始化值，不做任何计算    """
+
+"""    
+    当直接运行本类时，做测试使用    
+"""
 if __name__ == "__main__":
     dv1 = DataValidation(filetype='xlsx', filename='pf_data1.xlsx', sheetname='Sheet1',
                         id='loan_id', y='y')
