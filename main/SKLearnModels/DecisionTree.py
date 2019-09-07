@@ -11,6 +11,8 @@ import pydotplus
 
 """
     1.导入数据，划分训练集和测试集数据
+    注意：决策树虽然是针对离散型自变量构建，但训练数据仍须转换成数值型。
+    这里直接使用了变量的woe值，个人认为也可以根据自变量针对因变量的响应程度转换成其它有序系数也可。
 """
 data1 = pandas.read_excel('D:\\06-JerryTech\\dd_df.xlsx', sheet_name='Sheet1')
 data1[['y']] = data1[['y']].astype('str')
