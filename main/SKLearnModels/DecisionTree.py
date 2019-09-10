@@ -7,7 +7,8 @@
 """
 import pandas
 import sklearn.tree
-import pydotplus
+import numpy
+from main.common.ConfusionMatrixModelEvaluation import ConfusionMatrixModelEvaluation
 
 """
     1.导入数据，划分训练集和测试集数据
@@ -51,13 +52,23 @@ print(useful_columns_df)
 """
     3. 生成可视化图
 """
-sklearn.tree.export_graphviz(dtc, out_file='tree.dot', feature_names=useful_columns.tolist(),
-                             class_names=dtc.classes_, impurity=False, filled=True, rounded=True,
-                             special_characters=True)
-graph = pydotplus.graph_from_dot_file('tree.dot')
-graph.write_pdf('tree.pdf')
-print('Visible tree plot saved as pdf.')
+# sklearn.tree.export_graphviz(dtc, out_file='tree.dot', feature_names=useful_columns.tolist(),
+#                              class_names=dtc.classes_, impurity=False, filled=True, rounded=True,
+#                              special_characters=True)
+# graph = pydotplus.graph_from_dot_file('tree.dot')
+# graph.write_pdf('tree.pdf')
+# print('Visible tree plot saved as pdf.')
 
 """
-    4. 生成可视化图之后，需要再肉眼查看一下，可以做进一步的剪枝策略
+    4. 生成可视化图之后，可以再肉眼查看一下，做进一步的剪枝策略
 """
+
+"""
+    5.模型评估，依然可以用混淆矩阵方法，决策树模型的预测概率，就是叶子节点中目标类别的占比
+"""
+y_score = dtc.predict_proba(X_test)
+y_test = pandas.Series.astype(y_test, 'int_')
+result = numpy.c_[y_score[:, 1], y_test]
+print(result)
+cmme = ConfusionMatrixModelEvaluation(result)
+cmme.allgraph()
