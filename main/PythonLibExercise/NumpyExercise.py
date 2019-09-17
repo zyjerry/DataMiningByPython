@@ -1,5 +1,5 @@
 """
-    关于numpy库的典型使用方法
+    本文通过案例介绍numpy常用语法，作为后续参考
 """
 
 import numpy
@@ -53,6 +53,14 @@ print(a[..., 1])    # 查看第二列的元素
 print(a[1, ...])    # 查看第二行的元素
 print(a[..., 1:])   # 从第二列向后切片所有元素
 
+"""
+    条件查询
+"""
+a = numpy.arange(start=3, stop=19, step=2, dtype='int')
+b = numpy.where((a > 5) & (a < 13))    # b返回的是符合条件的索引值
+print(a)
+print(b)
+print(a[b])
 
 """
     关于排序
@@ -85,6 +93,10 @@ print(numpy.abs(b))           # 求矩阵每个元素的绝对值，类似函数
 print(numpy.sign(b))          # ceil、floor、sign、modf、三角函数、反三角函数
 print(numpy.sum(b, axis=0))   # 按列求和，类似函数还有mean、std、var、min、max、argmin、argmax……
 print(numpy.unique(b))
+a = numpy.arange(9)
+b = numpy.split(ary=a, indices_or_sections=3, axis=0)         # 把一个数组切割成多个数组，必须能够等分，否则会报错
+c = numpy.array_split(ary=a, indices_or_sections=2, axis=0)   # 把一个数组切割成多个数组，可以不等分
+print(b)
 
 
 """
