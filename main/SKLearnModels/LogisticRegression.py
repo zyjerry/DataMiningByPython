@@ -8,11 +8,11 @@
 """
 import numpy
 import pandas
-import sklearn
 import sklearn.linear_model
 import sklearn.model_selection
 from main.common.ConfusionMatrixModelEvaluation import ConfusionMatrixModelEvaluation
 from main.common.DataValidation import DataValidation
+from main.common.PSIModelEvaluation import PSIModelEvaluation
 
 """
     1.导入数据，查看数据总体概况、自变量的显著性
@@ -55,7 +55,7 @@ corr.to_excel('coor2.xlsx', sheet_name='corr')
 useless_columns2 = pandas.Series(['woe_applied_term', 'woe_company_property', 'woe_registered_city',
                                   'woe_residential_city'])
 print('删除有共线性的字段:\n', useless_columns2)
-# 删除没用的字段和
+# 删除没用的字段和有空值的记录
 data2 = data2.drop(useless_columns1, axis=1)
 data2 = data2.drop(useless_columns2, axis=1)
 data2 = data2.dropna(axis=1)
@@ -108,7 +108,17 @@ cmme = ConfusionMatrixModelEvaluation(result)
 cmme.allgraph()
 
 """
-    7.获取结果指标明细并导出为excel
+    7.评估PSI指标，查看模型稳定性
+"""
+y_p_train = lr.predict_proba(X_train)[:, 1]
+print("7.评估PSI指标，查看模型稳定性")
+pme = PSIModelEvaluation(train_score=y_p_train, test_score=y_predict[:, 1])
+print(pme)
+pme.drawGraph()
+
+
+"""
+    8.获取结果指标明细并导出为excel
 """
 indicators = cmme.getindicators(divisiontype="percentage")
 df_indicators = pandas.DataFrame(indicators)
