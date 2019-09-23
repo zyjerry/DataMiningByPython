@@ -9,6 +9,7 @@
 """
 import numpy
 import pandas
+import math
 import tensorflow.python as tf
 import sklearn.linear_model
 
@@ -113,6 +114,23 @@ class TensorFlowLogicRegression:
     def getparameters(self):
         return self.__weight, self.__bias
 
+    """
+        预测数据。
+        参数：
+            x：一个任意行*与__weight一致列的数组
+        输出：
+            pre：一个与x行数一致的二维数组，表示结果分别为1和0的概率
+    """
+    def predict(self, x=None):
+        pre = numpy.zeros((x.shape[0], 2), dtype=float)
+        i = 0
+        while i < x.shape[0]:
+            xx = numpy.sum(numpy.multiply(self.__weight, x[i, ...])) + self.__bias
+            pre[i, 0] = 1.0 / (1 + math.e**(-xx))
+            pre[i, 1] = 1.0 - pre[i, 0]
+            i += 1
+        return pre
+
 
 if __name__ == "__main__":
     # 读入数据
@@ -131,6 +149,8 @@ if __name__ == "__main__":
     w, b = tflr.getparameters()
     print("tensorflow trained w is: ", w)
     print("tensorflow trained b is: ", b)
+    pre = tflr.predict(x_train_data)
+    print(pre)
 
     # 用sklearn训练逻辑回归，可以对比结果：weight不太一样，bias基本一致
     # 结论：建模是个无限逼近的“差不多”艺术*^_^*
