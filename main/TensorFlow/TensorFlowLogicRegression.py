@@ -3,7 +3,7 @@
     本程序用tensorflow完成一个逻辑回归的模型拟合。
     已经有一份处理好且自变量均有效的宽表数据dd_df.xlsx（见本目录下SAS数据文件）：
     loan_id为流水号，y是因变量（二分类，其中y=1表示坏客户），其余均为自变量。
-    通过这个案例可以更好地理解逻辑回归的本质原理思想、模型函数、损失函数、梯度下降的概念
+    通过这个案例可以更好地理解逻辑回归的本质原理思想、模型函数、似然函数、梯度下降的概念
     Author：Jerry Zhang
     Email：zyjerry@gmail.com
 """
@@ -81,7 +81,11 @@ class TensorFlowLogicRegression:
             # 也可以直接利用tf的sigmoid函数
             y_pre = tf.sigmoid(tf.reduce_sum(tf.multiply(weight, self.__x_train), 1) + bias)
 
-            # 定义损失函数为对数损失函数(-y*log(y_pre) - (1-y)*log(1-y_pre))/样本数
+            # 定义损失函数为对数似然函数(-y*log(y_pre) - (1-y)*log(1-y_pre))/样本数
+            # 为什么这样定义呢？这里要扯到线性回归的最小二乘法和逻辑回归中的最大似然函数法的区别了。
+            # 最小二乘法的核心思想是，让预测值和真实值的“误差”尽可能小；
+            # 而最大似然函数法的核心思想是，让已知训练样本发生的概率尽可能大。
+            # 上述的对数似然函数就是这么来的，推导过程可参考相关文献，在梯度下降的运用中，就是加个负号，让其最小
             loss0 = self.__y_train * tf.log(y_pre)
             loss1 = (1 - self.__y_train) * tf.log(1 - y_pre)
             loss = tf.reduce_sum(- loss0 - loss1) / self.__x_train.shape[0]
